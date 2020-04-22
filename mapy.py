@@ -2,10 +2,12 @@ import os
 import sys
 from PIL import Image
 import folium
+from folium.plugins import MarkerCluster
 import base64
 
 this_py_file = os.path.dirname(sys.argv[0])
-folder_name = this_py_file.split("/")[-1]
+folder_name = os.path.basename(this_py_file)
+
 
 # the path where to save resized images
 resize_path = os.path.dirname(sys.argv[0])+'/Resized_Shapes/'
@@ -15,7 +17,7 @@ if not os.path.exists(resize_path):
 
 
 def get_data_and_resize():
-    print("Getting data and resizing...")
+    print("Getting data and resizing...Please Wait...")
     global gps_coord_degrees
     gps_coord_degrees = {}
     global dates
@@ -24,6 +26,7 @@ def get_data_and_resize():
     for image in os.listdir(this_py_file):
         imagename = os.fsdecode(image)
         if imagename.endswith(('.jpeg', '.jpg', '.png', '.gif')) or imagename.endswith(('.JPEG', 'JPG', '.PNG', '.GIF')):
+            print(imagename)
             image = Image.open(imagename)
             try:
                 image_exif = image._getexif()
@@ -38,6 +41,8 @@ def get_data_and_resize():
                     except KeyError:
                         dates[imagename] = "No Date Available"
 
+                    width, height = image.size
+
                     try:
                         image_orientation = image_exif[274]
                         if image_orientation == 6:
@@ -49,7 +54,7 @@ def get_data_and_resize():
                                 (wsize, baseheight), Image.ANTIALIAS)
                             image = image.rotate(-90, resample=0, expand=True)
                             image.save(resize_path + imagename,
-                                       'jpeg', quality=70)
+                                       'jpeg', quality=30)
 
                         if image_orientation == 3:
                             baseheight = 200
@@ -60,7 +65,7 @@ def get_data_and_resize():
                                 (wsize, baseheight), Image.ANTIALIAS)
                             image = image.rotate(180, resample=0, expand=True)
                             image.save(resize_path + imagename,
-                                       'jpeg', quality=70)
+                                       'jpeg', quality=30)
 
                         if image_orientation == 8:
                             baseheight = 200
@@ -71,7 +76,7 @@ def get_data_and_resize():
                                 (wsize, baseheight), Image.ANTIALIAS)
                             image = image.rotate(90, resample=0, expand=True)
                             image.save(resize_path + imagename,
-                                       'jpeg', quality=70)
+                                       'jpeg', quality=30)
                         else:
                             basewidth = 200
                             wpercent = (basewidth / float(image.size[0]))
@@ -80,16 +85,35 @@ def get_data_and_resize():
                             image = image.resize(
                                 (basewidth, hsize), Image.ANTIALIAS)
                             image.save(resize_path + imagename,
-                                       'jpeg', quality=70)
-                    except TypeError:
-                        pass
+                                       'jpeg', quality=30)
                     except KeyError:
-                        pass
+                        print(f"No orientation Exif available for: {imagename}")
+                    finally:
+                        if width>height:
+                            basewidth = 200
+                            wpercent = (basewidth / float(image.size[0]))
+                            hsize = int(
+                                (float(image.size[1]) * float(wpercent)))
+                            image = image.resize(
+                                (basewidth, hsize), Image.ANTIALIAS)
+                            image.save(resize_path + imagename,
+                                       'jpeg', quality=30)
+                        else:
+                            baseheight = 200
+                            hpercent = (baseheight / float(image.size[1]))
+                            wsize = int(
+                                (float(image.size[0]) * float(hpercent)))
+                            image = image.resize(
+                                (wsize, baseheight), Image.ANTIALIAS)
+                            image = image.rotate(-90, resample=0, expand=True)
+                            image.save(resize_path + imagename,
+                                       'jpeg', quality=30)
+
+
                 index += 1
-            except TypeError:
+            except:
                 pass
-            except KeyError:
-                pass
+
     print(f"{index} pictures processed...")
 
 
@@ -109,38 +133,49 @@ def get_coord_dec():
     return gps_coord_decimals
 
 
-m = folium.Map(location=[43.760024, 7.232068], zoom_start=5)
-
-
 def make_map():
+    m = folium.Map(location=[43.760024, 7.232068], zoom_start=5)
+
+    marker_cluster = MarkerCluster(
+        name='1000 clustered icons',
+        overlay=False,
+        control=False,
+        icon_create_function=None
+    ).add_to(m)
+
     get_data_and_resize()
     coordinates = get_coord_dec()
-    print("Making map...")
+    print("Making map...Please Wait...")
     for image in os.listdir(resize_path):
         imagename = os.fsdecode(image)
+        image = Image.open(imagename)
+        encoded = base64.b64encode(open(resize_path + imagename, 'rb').read())
+        width, height = image.size
 
-        image = Image.open(this_py_file + "/" + imagename)
-        image_exif = image._getexif()
-        image_orientation = image_exif[274]
+        try:
+            image_exif = image._getexif()
+            image_orientation = image_exif[274]
 
-        encoded = base64.b64encode(open(resize_path+imagename, 'rb').read())
-        if image_orientation == 6 or image_orientation == 8:
+            if image_orientation == 6 or image_orientation == 8:
+                html = '<img src="data:image/jpeg;base64,{}">'.format
+                resolution, width, height = 20, 10, (width / height * 10.5)
+            else:
+                html = '<img src="data:image/jpeg;base64,{}">'.format
+                resolution, width, height = 20, 10, (height / width * 10.5)
+        except:
+            width, height = image.size
+
             html = '<img src="data:image/jpeg;base64,{}">'.format
-            resolution, width, height = 20, 10, 14
-        else:
-            html = '<img src="data:image/jpeg;base64,{}">'.format
-            resolution, width, height = 20, 10, 8
+            resolution, width, height = 20, 10, (height / width * 10.5)
 
         iframe = folium.IFrame(html(encoded.decode(
             'UTF-8')), width=(resolution*width) + 20, height=(resolution*height) + 20)
         popup = folium.Popup(iframe, min_width=150, min_height=150)
         icon = folium.Icon(color="blue", icon="ok")
         tooltip = dates[imagename]
-        marker = folium.Marker(
-            location=coordinates[imagename], popup=popup, tooltip=tooltip, icon=icon)
+        folium.Marker(location=coordinates[imagename], popup=popup, tooltip=tooltip, icon=icon).add_to(marker_cluster)
 
-        marker.add_to(m)
-        m.save(f"{folder_name}_Map.html")
+    m.save(f"{folder_name}_Map.html")
 
 
 make_map()
