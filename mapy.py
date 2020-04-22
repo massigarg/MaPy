@@ -8,7 +8,6 @@ import base64
 this_py_file = os.path.dirname(sys.argv[0])
 folder_name = os.path.basename(this_py_file)
 
-
 # the path where to save resized images
 resize_path = os.path.dirname(sys.argv[0])+'/Resized_Shapes/'
 # create new folder
@@ -17,6 +16,12 @@ if not os.path.exists(resize_path):
 
 
 def get_data_and_resize():
+    '''
+    First checks if file has '.jpeg', '.jpg', '.png' or '.gif' extension.
+    Second checks the presence of GPS info in the image EXIF.
+    If second step pass then creates a ditcionary with: GPS coordinates in grades and dates.
+    Finally it provides the proper orientation after PIL module resize the image.
+    '''
     print("Getting data and resizing...Please Wait...")
     global gps_coord_degrees
     gps_coord_degrees = {}
@@ -108,9 +113,7 @@ def get_data_and_resize():
                             image = image.rotate(-90, resample=0, expand=True)
                             image.save(resize_path + imagename,
                                        'jpeg', quality=30)
-
-
-                index += 1
+                index += 1 #couts processed images
             except:
                 pass
 
@@ -118,6 +121,9 @@ def get_data_and_resize():
 
 
 def get_coord_dec():
+    '''
+    return: Dict. Converts coordinates from grade to decimals
+    '''
     print("Getting coordinates...")
     gps_coord_decimals = {}
     for image in gps_coord_degrees:
@@ -176,6 +182,5 @@ def make_map():
         folium.Marker(location=coordinates[imagename], popup=popup, tooltip=tooltip, icon=icon).add_to(marker_cluster)
 
     m.save(f"{folder_name}_Map.html")
-
 
 make_map()
