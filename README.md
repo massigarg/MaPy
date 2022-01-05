@@ -4,7 +4,7 @@
 MaPy is a script that creates a map using the Folium module for Python. 
 It will place on the map as many pins as the number of pictures with GPS Exif data.
 All the pins will have the date info and when clicked they will show the picture in the exact spot it has been shot.
-The folder_name.html file it creates contain all the pictures in the folder it is executed in.
+The folder_name.html contain all the pictures in the folder it is executed in.
 
 # Why?
 

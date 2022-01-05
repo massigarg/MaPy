@@ -4,8 +4,9 @@ from PIL import Image
 import folium
 from folium.plugins import MarkerCluster
 import base64
+import pathlib
 
-this_py_file = os.path.dirname(sys.argv[0])
+this_py_file = pathlib.Path(__file__).parent.resolve()
 folder_name = os.path.basename(this_py_file)
 
 # the path where to save resized images
@@ -92,9 +93,10 @@ def get_data_and_resize():
                             image.save(resize_path + imagename,
                                        'jpeg', quality=30)
                     except KeyError:
-                        print(f"No orientation Exif available for: {imagename}")
+                        print(
+                            f"No orientation Exif available for: {imagename}")
                     finally:
-                        if width>height:
+                        if width > height:
                             basewidth = 200
                             wpercent = (basewidth / float(image.size[0]))
                             hsize = int(
@@ -113,7 +115,7 @@ def get_data_and_resize():
                             image = image.rotate(-90, resample=0, expand=True)
                             image.save(resize_path + imagename,
                                        'jpeg', quality=30)
-                index += 1 #couts processed images
+                index += 1  # couts processed images
             except:
                 pass
 
@@ -129,8 +131,8 @@ def get_coord_dec():
     for image in gps_coord_degrees:
         lat = gps_coord_degrees[image][1]
         long = gps_coord_degrees[image][3]
-        gps_coord_decimals[image] = [((lat[0][0]) + (lat[1][0] / 60) + (
-            lat[2][0] / 360000)), ((long[0][0]) + (long[1][0] / 60) + (long[2][0] / 360000))]
+        gps_coord_decimals[image] = [((lat[0]) + (lat[1] / 60) + (
+            lat[2] / 360000)), ((long[0]) + (long[1] / 60) + (long[2] / 360000))]
         if gps_coord_degrees[image][0] == "S":
             gps_coord_decimals[image][0] *= -1
         if gps_coord_degrees[image][2] == "W":
@@ -179,8 +181,10 @@ def make_map():
         popup = folium.Popup(iframe, min_width=150, min_height=150)
         icon = folium.Icon(color="blue", icon="ok")
         tooltip = dates[imagename]
-        folium.Marker(location=coordinates[imagename], popup=popup, tooltip=tooltip, icon=icon).add_to(marker_cluster)
+        folium.Marker(location=coordinates[imagename], popup=popup,
+                      tooltip=tooltip, icon=icon).add_to(marker_cluster)
 
     m.save(f"{folder_name}_Map.html")
+
 
 make_map()
